@@ -1,0 +1,178 @@
+1. Working with tar backup archives
+
+  a. Extract TarDocs.tar to current directory
+
+    Tar -xvvf TarDocs.tar
+
+  b. Create the Javaless_Doc.tar archive from the TarDocs/ directory, while excluding the TarDocs/Documents/Java directory
+
+    tar -cvf Javaless_Docs.tar --exclude="TarDocs/Documents/Java" TarDocs/
+
+  c. Ensure /Java is not in the Javaless_Docs.tar archive
+
+    tar -tvf Javaless_Docs.tar | grep -i java
+
+  d. Create an incremental archive called logs_backup.tar.gz with only changed files to snapshot.file for the /var/log directory
+
+    sudo tar -cvzf --listed-incremental=snapshot.file logs_backup.tar.gz /var/log/
+
+  e. Critical Analysis: Why wouldn't you use the options -x and -c at the same time with tar?
+    
+    -x is to extract from a compressed file
+    -c is to create a new archive
+    The functions are in direct conflict with each other
+
+2. Cron jobs
+
+  a. Cron job for backing up the /var/log/auth.log file every Wednesday at 6am
+
+    0 6 * * 3 tar -zcf /auth_backup.tgz /var/log/auth.log
+
+      Notation at start indicates 0 minutes (ie on the hour), 6 hours (ie 6am), * day (any), * month (any), 3rd day of the week (ie Wednesday)
+
+3. Basic Bash Scripts
+
+  a. Create four subdirectories to store backups for specific system info using brace expansion
+
+    mkdir -p ~/backups/{freemem,diskuse,openlist,freedisk}
+
+      will create four subdirectories with the respective names under ~/backups/
+      eg. ~/backups/freemem
+
+  b. Edit the `system.sh` script file (./assets/system.sh) so that it that does the following:
+  - Prints the amount of free memory on the system and saves it to `~/backups/freemem/free_mem.txt`
+  - Prints disk usage and saves it to `~/backups/diskuse/disk_usage.txt`
+  - Lists all open files and saves it to `~/backups/openlist/open_list.txt`
+  - Prints file system disk space statistics and saves it to `~/backups/freedisk/free_disk.txt`
+
+    #!/bin/bash
+
+    # Free memory output to a free_mem.txt file
+
+    free -h > ~/backups/freemem/free_mem.txt
+
+    # Disk usage output to a disk_usage.txt file
+
+    df -h > ~/backups/diskuse/disk_usage.txt
+    
+    # List open files to a open_list.txt file
+
+    lsof > ~/backups/openlist/open_list.txt
+
+    # Free disk space to a free_disk.txt file
+
+    du -h > ~/backups/freedisk/free_disk.txt
+
+  c. Make the file executable 
+
+    sudo chmod +x system.sh
+
+  d. Test script and confirm its execution
+
+    ./system.sh
+
+    tail ~/backups/diskuse/disk_usage.txt
+    tail ~/backups/freemem/free_mem.txt
+    tail ~/backups/openlist/open_list.txt
+    tail ~/backups/freedisk/free_disk.txt
+
+  e. Automate script (system.sh) by adding to weekly system-wide cron directory
+
+    sudo cp system.sh /etc/cron.weekly
+
+4. Manage Log File Sizes
+
+  a. Edit/Open logrotate file
+
+    sudo nano /etc/logrotate.conf
+
+  b. Configure log rotation scheme that backs up auth messages to the /var/log/auth.log directory using the following conditions
+  - Rotates weekly.
+  - Rotates only the seven most recent logs.
+  - Does not rotate empty logs.
+  - Delays compression.
+  - Skips error messages for missing logs and continues to next log.
+
+  CONFIG FILE EDITS
+    /var/log/auth.log {
+    weekly
+    rotate 7
+    notifempty
+    delaycompress
+    missingok
+    }
+
+5. Check for policy violations
+
+  a. Verify auditd is active
+
+    systemctl status auditd
+
+  b. Edit/Open auditd config file
+
+    sudo nano /etc/audit/auditd.conf
+
+  c. Edit file so that max number of logs retained is 7 and max log file size is 35
+
+    max_log_file = 35
+    num_logs = 7
+
+  d. Set rules for auditd
+
+    sudo nano /etc/audit/rules.d/audit.rules
+
+  e. For `/etc/shadow`, set `wra` for the permissions to monitor and set the `keyname` for this rule to `hashpass_audit`
+
+    -w /etc/shadow -p rwa -k hashpass_audit
+
+  f. For `/etc/passwd`, set `wra` for the permissions to monitor and set the `keyname` for this rule to `userpass_audit`
+
+    -w /etc/passwd -p rwa -k userpass_audit
+
+  g. For `/var/log/auth.log`, set `wra` for the permissions to monitor and set the `keyname` for this rule to `authlog_audit`
+
+    -w /var/log/auth.log -p rwa -k authlog_audit
+
+  h. Restart auditd
+
+    sudo systemctl restart auditd
+
+  i. List rules for auditd
+
+    sudo auditctl -l
+
+  j. Produce audit report
+
+    sudo aureport -au
+
+  k. Use auditd to watch /var/log/cron
+
+    -w /var/log/cron -p rwxa
+
+  l. Verify auditd rules
+
+    sudo auditctl -l
+
+6. Log Filtering
+
+  a. Return journalctl messages prioritised from emergency to error
+
+    sudo journalctl -b -1  -p "emerg".."err"
+
+  b. Check the disk usage of the system journal unit since the most recent boot
+
+    journalctl --disk-usage
+
+  c. Remove all archived journal files except the most recent two
+
+    sudo journalctl --vacuum-files=2
+
+  d. Filter all log messages with priority levels between zero and two, and save output to /home/sysadmin/Priority_High.txt
+
+    sudo journalctl -p 0..2 >> /home/sysadmin/Priority_High.txt
+
+  e. Automate last command into a daily cron job that executes at 8am
+
+    EDIT TO CRONTAB FILE
+
+    0 8 * * * sudo journalctl -p 0..2 >> /home/sysadmin/Priority_High.txt >/dev/null 2>&1
