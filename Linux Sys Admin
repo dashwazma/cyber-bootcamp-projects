@@ -1,0 +1,86 @@
+1. Ensuring Appropriate Permissions
+
+  a. Inspect permissions for /etc/shadow
+
+    ls -l /etc/shadow
+
+  b. Set permissions to allow only root read and write access
+
+    sudo chmod 600 /etc/shadow
+
+  c. Inspect permissions for /etc/gshadow
+
+    ls -l /etc/gshadow
+ 
+  d. Set permissions to allow only root read and write access
+
+    sudo chmod 600 /etc/gshadow
+
+  e. Inspect permissions for /etc/group
+
+    ls -l /etc/group
+
+  f. Set permissions to allow root read and write access, everyone else read access only
+
+    sudo chmod 644 /etc/group
+
+2. New accounts
+
+  a. Create new accounts
+
+    sudo useradd koolusername
+    sudo adduser koolerusername
+
+  b. Add koolerusername to sudo group
+
+    sudo usermod -aG sudo koolerusername
+
+3. Groups and Folders
+
+  a. Create a new group
+
+    sudo addgroup koolgroupname
+
+  b. Add users to the group
+
+    sudo usermod -aG koolgroup koolusername
+
+  c. Create a shared folder for the group at /home/koolgroup
+
+    sudo mkdir koolgroup
+
+  d. Change ownership of shared folder to the group
+
+    sudo chown :koolgroup koolgroup
+
+4. Lynis Auditing
+
+  a. Install lynis
+
+    sudo apt install lynis
+
+  b. View documentation and instructions
+
+    man lynis
+
+  c. Run audit
+
+    sudo lynis audit system 
+
+5. Chrootkit
+
+  a. Install chrootkit
+
+    sudo apt install chkrootkit -y
+
+  b. View documentation and instructions
+
+    man chkrootkit
+
+  c. Run in expert mode
+
+    sudo chkrootkit -x
+
+  d. Run in quiet mode
+
+    sudo chkrootkit -q
